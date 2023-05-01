@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcKopikoDemoServer.Protos";
+
+package userOrder;
+
+import "google/protobuf/empty.proto";
+
+service UserOrder{
+	rpc CreateNewOrder (CreateNewOrderRequest) returns (CreateNewOrderReply);
+	rpc GetUserOrders (google.protobuf.Empty) returns (GetUserOrdersReply);
+}
+
+message OrderDetailsRequest{
+	int64 productId = 1;
+	double PricePerPiece = 2;
+	int32 quantity = 3;
+	optional int64 UserID = 4;
+	optional string OrderNumber = 5;
+	optional int64 OrderID = 6;
+}
+
+message CreateNewOrderRequest{
+	repeated OrderDetailsRequest orderDetailsList = 1;
+	string orderShipName = 2;
+	string orderShipAddress = 3;
+	optional int64 UserID = 4;
+	optional double OrderTotalPrice = 5;
+	optional string OrderNumber = 6;
+}
+
+message CreateNewOrderReply{
+	bool orderSaved = 1;
+}
+
+message UserProductItem{
+	string ProductName = 1;
+	string ProductDescription = 2;
+	double Price = 3;
+	string ProductImageUrl = 4;
+}
+
+message UserOrderDetailsItem{
+	int32 Quantity = 1;
+	double PricePerPiece = 2;
+	double TotalPrice = 3;
+	UserProductItem product = 4;
+}
+
+message UserOrderItem{
+	string OrderNumber = 1;
+	string OrderShipName = 2;
+	string OrderShipAddress = 3;
+	double OrderTotalPrice = 4;
+	repeated UserOrderDetailsItem OrderDetails = 5;
+}
+
+message GetUserOrdersReply{
+	repeated UserOrderItem orders = 1;
+}

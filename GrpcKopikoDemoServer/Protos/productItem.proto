@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcKopikoDemoServer.Protos";
+
+package productItem;
+
+import "google/protobuf/empty.proto";
+
+service ProductItem{
+	rpc GetAllProducts (google.protobuf.Empty) returns (GetAllProductsReply);
+}
+
+message ProductDetails{
+	int64 ProductID = 1;
+	string ProductName = 2;
+	string ProductDescription = 3;
+	string ProductImageUrl = 4;
+	double Price = 5;
+}
+
+message GetAllProductsReply {
+	repeated ProductDetails products = 1;
+}
