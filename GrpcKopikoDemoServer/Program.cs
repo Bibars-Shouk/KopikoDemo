@@ -17,76 +17,94 @@ using System.Text;
 
 namespace GrpcKopikoDemoServer
 {
-	public class Program
-	{
-		public static void Main(string[] args)
-		{
-			var builder = WebApplication.CreateBuilder(args);
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
 
-			// Set database context 
-			builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Set database context 
+            builder.Services.AddDbContext<DatabaseContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-			// Inject Token Helper
-			builder.Services.AddScoped(typeof(ITokenServiceHelper), typeof(TokenServiceHelper));
+            // Inject Token Helper
+            builder.Services.AddScoped(typeof(ITokenServiceHelper), typeof(TokenServiceHelper));
 
-			// Add services to the container.
+            // Add services to the container.
 
-			// Authentication
-			builder.Services.AddAuthentication(options =>
-			{
-				options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-				options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-			}).AddJwtBearer(options =>
-			{
-				options.RequireHttpsMetadata = false;
-				options.SaveToken = true;
-				options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-				{
-					ValidateIssuerSigningKey = true,
-					IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
-					ValidateIssuer = false,
-					ValidateAudience = false,
-				};
-			});
+            // Authentication
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = true;
+                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_SECRET"))),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                };
+            });
 
-			builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization();
 
-			// Set Grpc options and add access token interceptor
-			builder.Services.AddGrpc(options => { options.EnableMessageValidation(); })							
-							.AddServiceOptions<UserActionService>(options => { options.Interceptors.Add<AccessTokenInterceptor>(); })
-							.AddServiceOptions<UserOrderService>(options => { options.Interceptors.Add<AccessTokenInterceptor>(); });
-			
+            // Set Grpc options and add access token interceptor
+            builder.Services.AddGrpc(options => { options.EnableMessageValidation(); })
+                            .AddServiceOptions<UserActionService>(options => { options.Interceptors.Add<AccessTokenInterceptor>(); })
+                            .AddServiceOptions<UserOrderService>(options => { options.Interceptors.Add<AccessTokenInterceptor>(); });
 
-			// Set validators 
-			builder.Services.AddValidator<RegisterRequestValidator>();
-			builder.Services.AddValidator<RefreshTokenRequestValidator>();
-			builder.Services.AddValidator<LoginRequestValidator>();
-			builder.Services.AddValidator<CreateOrderValidator>();
-			builder.Services.AddValidators();
-			builder.Services.AddGrpcValidation();
+            //Add CORS
+            builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+            {
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader()
+                       .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+            }));
 
-			// Model services injections 
-			builder.Services.AddScoped(typeof(IUserService), typeof(UserService));
-			builder.Services.AddScoped(typeof(IProductService), typeof(ProductService));
-			builder.Services.AddScoped(typeof(IOrderDetailsService), typeof(OrderDetailsService));
-			builder.Services.AddScoped(typeof(IOrderService), typeof(OrderService));
 
-			// Set AutoMapper 
-			builder.Services.AddAutoMapper(typeof(Program));
+            // Set validators 
+            builder.Services.AddValidator<RegisterRequestValidator>();
+            builder.Services.AddValidator<RefreshTokenRequestValidator>();
+            builder.Services.AddValidator<LoginRequestValidator>();
+            builder.Services.AddValidator<CreateOrderValidator>();
+            builder.Services.AddValidators();
+            builder.Services.AddGrpcValidation();
 
-			var app = builder.Build();
+            // Model services injections 
+            builder.Services.AddScoped(typeof(IUserService), typeof(UserService));
+            builder.Services.AddScoped(typeof(IProductService), typeof(ProductService));
+            builder.Services.AddScoped(typeof(IOrderDetailsService), typeof(OrderDetailsService));
+            builder.Services.AddScoped(typeof(IOrderService), typeof(OrderService));
 
-			// **ONLY FOR TESTING PURPOSES**
-			// Populates Products talbe with data
-			DBTablesInit.InitProducts(app);
+            // Set AutoMapper 
+            builder.Services.AddAutoMapper(typeof(Program));
 
-			app.MapGrpcService<AuthService>();
-			app.MapGrpcService<UserActionService>();
-			app.MapGrpcService<ProductItemService>();
-			app.MapGrpcService<UserOrderService>();
-			app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+            var app = builder.Build();
 
-			app.Run();
-		}
-	}
+            app.UseRouting();
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+            app.UseCors();
+            app.UseAuthorization();
+
+            // **ONLY FOR TESTING PURPOSES**
+            // Populates Products talbe with data
+            DBTablesInit.InitProducts(app);
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapGrpcService<AuthService>().RequireCors("AllowAll");
+                endpoints.MapGrpcService<UserActionService>().RequireCors("AllowAll");
+                endpoints.MapGrpcService<ProductItemService>().RequireCors("AllowAll");
+                endpoints.MapGrpcService<UserOrderService>().RequireCors("AllowAll");
+            });
+
+            app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+            app.Run();
+        }
+    }
 }
