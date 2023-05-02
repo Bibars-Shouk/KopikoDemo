@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option csharp_namespace = "BlazorKopikoDemoClient.Protos";
+
+package auth;
+
+import "google/protobuf/timestamp.proto";
+
+service Auth{
+	rpc Register (RegisterRequest) returns (AuthReply);
+	rpc RefreshToken (RefreshTokenRequest) returns (AuthReply);
+	rpc Login (LoginRequest) returns (AuthReply);
+}
+
+message RegisterRequest{
+	string firstName = 1;
+	string lastName = 2;
+	string email = 3;
+	string password = 4;
+}
+
+message AuthReply{
+	string accessToken = 1; 
+    google.protobuf.Timestamp accessTokenExpiryDate = 2;
+	string refreshToken = 3;
+	google.protobuf.Timestamp refreshTokenExpiryDate = 4;
+}
+
+message RefreshTokenRequest{
+	string accessToken = 1;
+	string refreshToken = 2;
+}
+
+message LoginRequest{
+	string email = 1;
+	string password = 2;
+}

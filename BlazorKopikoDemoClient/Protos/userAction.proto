@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option csharp_namespace = "BlazorKopikoDemoClient.Protos";
+
+package userAction;
+
+import "google/protobuf/empty.proto";
+
+
+service UserAction{
+	rpc GetLoggedInUser (google.protobuf.Empty) returns (GetLoggedInUserReply);
+	rpc LogoutUser (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+message GetLoggedInUserReply{
+	string firstName = 1;
+	string lastName = 2;
+	string email = 3;
+}

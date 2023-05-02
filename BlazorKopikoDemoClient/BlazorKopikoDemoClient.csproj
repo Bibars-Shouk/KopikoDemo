@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\auth.proto" />
+    <None Remove="Protos\productItem.proto" />
+    <None Remove="Protos\userAction.proto" />
+    <None Remove="Protos\userOrder.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.22.3" />
     <PackageReference Include="Grpc.Net.Client" Version="2.52.0" />
     <PackageReference Include="Grpc.Net.Client.Web" Version="2.52.0" />
@@ -16,6 +23,13 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.5" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\auth.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\productItem.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\userAction.proto" GrpcServices="Client" />
+    <Protobuf Include="Protos\userOrder.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>
