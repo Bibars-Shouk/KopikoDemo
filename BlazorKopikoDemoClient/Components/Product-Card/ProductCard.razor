@@ -1,0 +1,19 @@
+﻿<div class="card" style="width: 18rem;">
+    <img src="@CardImageUrl" class="card-img-top" alt="...">
+    <div class="card-body">
+        <h5 class="card-title">@CardTitle</h5>
+        <p class="card-text">$@CardPrice</p>
+        <a href="#" class="btn btn-primary">View Product</a>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string CardImageUrl { get; set; }
+
+    [Parameter]
+    public string CardTitle { get; set; }
+
+    [Parameter]
+    public double CardPrice { get; set; }
+}

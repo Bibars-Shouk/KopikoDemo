@@ -1,9 +1,43 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+@using BlazorKopikoDemoClient.Components.Product_Card
+@using BlazorKopikoDemoClient.Protos;
+@using Google.Protobuf.WellKnownTypes;
+@using Grpc.Net.Client;
+@inject GrpcChannel channel;
 
-<h1>Hello, world!</h1>
+<PageTitle>Our Products</PageTitle>
 
-Welcome to your new app.
+<h1 class="fs-3">Our Products</h1>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+
+@if (_reply == null)
+{
+    <span class="spinner-border text-primary position-absolute top-50 start-50" role="status"></span>
+}
+else
+{
+    <div class="container text-center">
+        <div class="row gx-3 gy-3">
+            @foreach (var product in _reply.Products)
+            {
+                <div class=" col-lg-4">                   
+                    <ProductCard 
+                        CardImageUrl="@product.ProductImageUrl" 
+                        CardTitle="@product.ProductName" 
+                        CardPrice="@product.Price"
+                    />
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private GetAllProductsReply _reply;
+    protected override async Task OnInitializedAsync()
+    {
+        var client = new ProductItem.ProductItemClient(channel);
+        _reply = await client.GetAllProductsAsync(new Empty());
+    }
+}
