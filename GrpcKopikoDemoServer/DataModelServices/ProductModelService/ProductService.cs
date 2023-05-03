@@ -25,5 +25,18 @@ namespace GrpcKopikoDemoServer.DataModelServices.ProductModelService
 				throw;
 			}
 		}
+
+		async Task<Product> IProductService.GetById(long productId)
+		{
+			try
+			{
+				var prodcut = await _context.Products.FirstOrDefaultAsync(x => x.ProductID == productId);
+				return prodcut;
+			}
+			catch (Exception)
+			{
+				throw;
+			}
+		}
 	}
 }

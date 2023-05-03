@@ -8,6 +8,7 @@ import "google/protobuf/empty.proto";
 
 service ProductItem{
 	rpc GetAllProducts (google.protobuf.Empty) returns (GetAllProductsReply);
+	rpc GetProductById (GetProductByIdRequest) returns (ProductDetails);
 }
 
 message ProductDetails{
@@ -20,4 +21,8 @@ message ProductDetails{
 
 message GetAllProductsReply {
 	repeated ProductDetails products = 1;
+}
+
+message GetProductByIdRequest{
+	int64 ProductID = 1;
 }

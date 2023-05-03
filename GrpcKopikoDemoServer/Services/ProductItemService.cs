@@ -25,5 +25,12 @@ namespace GrpcKopikoDemoServer.Services
 			reply.Products.AddRange(productsReplyList);
 			return await Task.FromResult(reply);
 		}
-	}
+
+        public override async Task<ProductDetails> GetProductById(GetProductByIdRequest request, ServerCallContext context)
+        {
+			var product = await _productService.GetById(request.ProductID);
+			var reply = _mapper.Map<ProductDetails>(product);
+			return reply;
+        }
+    }
 }
