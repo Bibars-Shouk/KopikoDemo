@@ -3,7 +3,7 @@
     <div class="card-body">
         <h5 class="card-title">@CardTitle</h5>
         <p class="card-text">$@CardPrice</p>
-        <a href="#" class="btn btn-primary">View Product</a>
+        <a href='@("product/"+ProductId)' class="btn btn-primary">View Product</a>
     </div>
 </div>
 
@@ -16,4 +16,8 @@
 
     [Parameter]
     public double CardPrice { get; set; }
+
+    [Parameter]
+    public long ProductId { get; set; }
+
 }

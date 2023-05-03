@@ -1,0 +1,45 @@
+﻿@page "/product/{productId:long}"
+
+@using BlazorKopikoDemoClient.Protos;
+@using Grpc.Net.Client;
+@inject GrpcChannel channel;
+
+@if (_reply == null)
+{
+    <span class="spinner-border text-primary position-absolute top-50 start-50" role="status"></span>
+}
+else
+{
+    <div class="container min-vh-100 d-flex justify-content-center align-items-md-start align-items-lg-center">
+        <div class="row">
+            <div class="col" style="min-width: 300px">
+                <img src="@_reply.ProductImageUrl" class="img-fluid" alt="...">
+            </div>
+            <div class="col p-4 d-flex flex-column justify-content-between" style="min-width: 300px">
+                <div>
+                    <h5 class="card-title">@_reply.ProductName</h5>
+                    <p class="card-text">@_reply.ProductDescription</p>
+                    <p class="card-text"><small class="text-muted">$@_reply.Price</small></p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-primary">Add to Cart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public long ProductId { get; set; } = 1;
+    private long _productID;
+    private ProductDetails _reply;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _productID = ProductId;
+        var client = new ProductItem.ProductItemClient(channel);
+        var request = new GetProductByIdRequest() { ProductID = _productID };
+        _reply = await client.GetProductByIdAsync(request);
+    }
+}
