@@ -1,4 +1,6 @@
+using Blazored.LocalStorage;
 using BlazorKopikoDemoClient;
+using BlazorKopikoDemoClient.Client.State;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Web;
@@ -18,6 +20,10 @@ namespace BlazorKopikoDemoClient
 
             // Set Grpc Channel
             builder.Services.AddSingleton(sp => { return GrpcChannel.ForAddress("https://localhost:7027", new GrpcChannelOptions { HttpHandler = new GrpcWebHandler(new HttpClientHandler()) }); });
+
+            builder.Services.AddBlazoredLocalStorage();
+
+            builder.Services.AddScoped<CartState>();
 
             await builder.Build().RunAsync();
         }

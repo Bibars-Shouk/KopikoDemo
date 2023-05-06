@@ -1,8 +1,11 @@
 ﻿@page "/product/{productId:long}"
 
+@using BlazorKopikoDemoClient.Client.DataModels;
+@using BlazorKopikoDemoClient.Client.State;
 @using BlazorKopikoDemoClient.Protos;
 @using Grpc.Net.Client;
 @inject GrpcChannel channel;
+@inject CartState CartState;
 
 @if (_reply == null)
 {
@@ -21,9 +24,23 @@ else
                     <p class="card-text">@_reply.ProductDescription</p>
                     <p class="card-text"><small class="text-muted">$@_reply.Price</small></p>
                 </div>
-                <div>
-                    <button type="button" class="btn btn-primary">Add to Cart</button>
+                <div class="d-flex align-items-center gap-4">
+                    <button type="button" class="btn btn-primary" @onclick="AddToCart">Add to Cart</button>
+                    <div class="input-group w-25">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-danger btn-number" @onclick="DecrementQuantity">
+                                <span class="oi oi-minus"></span>
+                            </button>
+                        </span>
+                        <input type="text" readonly class="form-control input-number" value="@_quntity" min="1" max="100">
+                        <span class="input-group-btn">
+                            <button type="button" class="btn btn-success btn-number" @onclick="IncrementQuantity">
+                                <span class="oi oi-plus"></span>
+                            </button>
+                        </span>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -35,6 +52,8 @@ else
     private long _productID;
     private ProductDetails _reply;
 
+    private int _quntity = 1;
+
     protected override async Task OnInitializedAsync()
     {
         _productID = ProductId;
@@ -42,4 +61,29 @@ else
         var request = new GetProductByIdRequest() { ProductID = _productID };
         _reply = await client.GetProductByIdAsync(request);
     }
+
+    private void IncrementQuantity()
+    {
+        if (_quntity < 100)
+            _quntity++;
+    }
+
+    private void DecrementQuantity()
+    {
+        if (_quntity > 1)
+            _quntity--;
+    }
+
+    private async Task AddToCart()
+    {
+        CartItem item = new CartItem
+            {
+                ProductId = _reply.ProductID,
+                PricePerPiece = _reply.Price,
+                Quantity = _quntity,
+            };
+
+        await CartState.AddItemToCart(item);
+    }
+
 }
