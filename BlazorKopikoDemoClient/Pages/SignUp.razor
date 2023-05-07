@@ -1,29 +1,35 @@
 ﻿@page "/sign-up";
 @layout AuthLayout;
 
+@using BlazorKopikoDemoClient.Client.DataModels;
 
 <div>
     <h1 class="text-center fw-bold authHeading">Kopiko</h1>
     <p class="text-center mt-4">Please enter your personal information!</p>
-    <form class="mt-4 d-flex flex-column align-items-stretch">
+    <EditForm class="mt-4 d-flex flex-column align-items-stretch" Model="@_signUpModel" OnValidSubmit="@HandleValidSubmit">
         <div class="mb-3">
             <label for="first_name" class="form-label">First Name</label>
-            <input type="text" class="form-control" id="first_name">
+            <InputText class="form-control" id="first_name" @bind-Value="_signUpModel.FirstName"/>
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.FirstName)" />
         </div>
         <div class="mb-3">
             <label for="last_name" class="form-label">Last Name</label>
-            <input type="text" class="form-control" id="last_name">
+            <InputText class="form-control" id="last_name" @bind-Value="_signUpModel.LastName"/>
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.LastName)" />
         </div>
         <div class="mb-3">
             <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email">
+            <InputText class="form-control" id="email" @bind-Value="_signUpModel.Email" />
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.Email)" />
         </div>
         <div class="mb-3">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password">
+            <InputText class="form-control" id="password" @bind-Value="_signUpModel.Password" />
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.Password)" />
         </div>
         <button type="submit" class="btn btn-primary ">Sign Up</button>
-    </form>
+        <DataAnnotationsValidator />
+    </EditForm>
     <div class="mt-4 d-flex flex-column align-items-center">
         <p>Already have an account?</p>
         <NavLink class="nav-link" href="login">
@@ -33,5 +39,11 @@
 </div>
 
 @code {
+    private SignUpModel _signUpModel = new();
+
+    private void HandleValidSubmit()
+    {
+        // handle sign up        
+    }
 
 }

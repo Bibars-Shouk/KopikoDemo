@@ -1,21 +1,25 @@
 ﻿@page "/login";
 @layout AuthLayout;
 
+@using BlazorKopikoDemoClient.Client.DataModels;
 
 <div>
     <h1 class="text-center fw-bold authHeading">Kopiko</h1>
-    <p class="text-center mt-4">Please enter your login and password!</p>
-    <form class="mt-4 d-flex flex-column align-items-stretch">
+    <p class="text-center mt-4">Please enter your Email and password!</p>
+    <EditForm class="mt-4 d-flex flex-column align-items-stretch" Model="@_loginModel" OnValidSubmit="@HandleValidSubmit">       
         <div class="mb-3">
             <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email">
+            <InputText class="form-control" id="email" @bind-Value="_loginModel.Email" />
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _loginModel.Email)" />
         </div>
         <div class="mb-3">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" id="password">
+            <InputText class="form-control" id="password" @bind-Value="_loginModel.Password" />
+            <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _loginModel.Password)" />
         </div>
         <button type="submit" class="btn btn-primary ">Login</button>
-    </form>
+        <DataAnnotationsValidator />
+    </EditForm>
     <div class="mt-4 d-flex flex-column align-items-center">
         <p>Don't have an account yet!</p>
         <NavLink class="nav-link" href="sign-up">
@@ -25,5 +29,10 @@
 </div>
 
 @code {
-
+    private LoginModel _loginModel = new();
+    
+    private void HandleValidSubmit()
+    {
+        // handle login
+    }
 }
