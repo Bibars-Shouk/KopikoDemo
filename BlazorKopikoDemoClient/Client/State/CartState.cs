@@ -61,5 +61,13 @@ namespace BlazorKopikoDemoClient.Client.State
             OnChange.Invoke();
         }
 
+        public async Task RemoveItemFromCart(long itemId) 
+        {
+            CartItem existingItem = CartItems.FirstOrDefault(i => i.ProductId == itemId);
+            CartItems.Remove(existingItem);
+            await _updateCartOnLocalStorage();
+            OnChange.Invoke();
+        }
+
     }
 }
