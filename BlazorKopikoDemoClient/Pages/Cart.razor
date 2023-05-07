@@ -1,0 +1,98 @@
+﻿@page "/cart";
+
+@using BlazorKopikoDemoClient.Client.DataModels;
+@using BlazorKopikoDemoClient.Client.State;
+@using BlazorKopikoDemoClient.Protos;
+@using Grpc.Net.Client;
+@inject CartState CartState;
+@inject GrpcChannel channel;
+
+
+<h3>Cart</h3>
+
+@if (_isLoadingItems)
+{
+    <span class="spinner-border text-primary position-absolute top-50 start-50" role="status"></span>
+}
+else
+{
+    @if (!_isLoadingItems && _cartItemsDetailedList.Count == 0)
+    {
+        <div class="position-absolute top-50 start-50">
+            <p class="fs-5">Your Cart is empty</p>
+        </div>
+    }
+    else
+    {
+        <div class="container text-center">
+            <p class="fs-3">Total Cost (@GetItemsCount() items): <span class="fw-bold">$@GetTotalCost()</span></p>
+            <button class="btn btn-success">Proceed to checkout</button>
+        </div>
+        <div class="d-flex flex-column gap-4 mt-4">
+            @foreach (var item in _cartItemsDetailedList)
+            {
+                <div class="d-flex align-items-stretch gap-4 flex-sm-nowrap flex-wrap">
+                    <div class="" style="max-width: 300px;">
+                        <img src="@item.ProductImageUrl" class="img-fluid" alt="...">
+                    </div>
+                    <div class="p-3 d-flex flex-column justify-content-between">
+                        <div class="">
+                            <p class="fs-3 fw-bold">@item.ProductName</p>
+                            <p>@item.ProductDescription</p>
+                            <p>Quantity: @GetItemQuantity(item.ProductID)</p>
+                            <p>Price per piece: $@item.Price</p>
+                            <p>Total price: $@(item.Price * GetItemQuantity(item.ProductID))</p>
+                        </div>
+                        <div class="">
+                            <button class="btn btn-danger" @onclick="()=> RemoveItem(item)">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+
+
+@code {
+
+    private List<ProductDetails> _cartItemsDetailedList = new List<ProductDetails>();
+    private bool _isLoadingItems = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = new ProductItem.ProductItemClient(channel);
+        var cartItemsList = CartState.CartItems;
+        if (cartItemsList.Count != 0)
+        {
+            var requests = cartItemsList.Select(item => new GetProductByIdRequest() { ProductID = item.ProductId });
+            var tasks = requests.Select(request => client.GetProductByIdAsync(request).ResponseAsync);
+            var products = await Task.WhenAll(tasks);
+            _cartItemsDetailedList.AddRange(products);
+        }
+        _isLoadingItems = false;
+    }
+
+    private int GetItemQuantity(long itemId)
+    {
+        CartItem existingItem = CartState.CartItems.FirstOrDefault(i => i.ProductId == itemId);
+        return existingItem.Quantity;
+    }
+
+    private async Task RemoveItem(ProductDetails item)
+    {       
+        _cartItemsDetailedList.Remove(item);
+        await CartState.RemoveItemFromCart(item.ProductID);
+    }
+
+    private int GetItemsCount()
+    {
+        return CartState.CartItems.Sum(item => item.Quantity);
+    }
+
+    private double GetTotalCost()
+    {
+        return CartState.CartItems.Sum(item => item.Quantity * item.PricePerPiece);
+    }
+}
