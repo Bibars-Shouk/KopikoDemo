@@ -1,0 +1,29 @@
+﻿@page "/login";
+@layout AuthLayout;
+
+
+<div>
+    <h1 class="text-center fw-bold authHeading">Kopiko</h1>
+    <p class="text-center mt-4">Please enter your login and password!</p>
+    <form class="mt-4 d-flex flex-column align-items-stretch">
+        <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="email">
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password">
+        </div>
+        <button type="submit" class="btn btn-primary ">Login</button>
+    </form>
+    <div class="mt-4 d-flex flex-column align-items-center">
+        <p>Don't have an account yet!</p>
+        <NavLink class="nav-link" href="sign-up">
+            <span class="text-primary">Sign Up</span>
+        </NavLink>
+    </div>
+</div>
+
+@code {
+
+}
