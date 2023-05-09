@@ -2,6 +2,13 @@
 @layout AuthLayout;
 
 @using BlazorKopikoDemoClient.Client.DataModels;
+@using BlazorKopikoDemoClient.Client.State;
+@using BlazorKopikoDemoClient.Protos;
+@using Grpc.Net.Client;
+@inject AuthState AuthState;
+@inject NavigationManager NavManager
+@implements IDisposable;
+@inject GrpcChannel channel;
 
 <div>
     <h1 class="text-center fw-bold authHeading">Kopiko</h1>
@@ -17,6 +24,12 @@
             <InputText class="form-control" id="password" @bind-Value="_loginModel.Password" />
             <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _loginModel.Password)" />
         </div>
+
+        @if (_isInvalidCredentials)
+        {
+            <p class="fs-6 text-danger mt-2 mb-2 text-center">Invalid Credentials!</p>
+        }
+
         <button type="submit" class="btn btn-primary ">Login</button>
         <DataAnnotationsValidator />
     </EditForm>
@@ -30,9 +43,57 @@
 
 @code {
     private LoginModel _loginModel = new();
-    
-    private void HandleValidSubmit()
+    private bool _isInvalidCredentials = false;
+
+    protected override async Task OnInitializedAsync()
     {
-        // handle login
+        AuthState.OnChange += StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+        if (AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    public void Dispose()
+    {        
+        AuthState.OnChange -= StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var client = new Auth.AuthClient(channel);
+        var loginRequest = new LoginRequest
+        {
+            Email = _loginModel.Email,
+            Password = _loginModel.Password
+        };
+
+        try
+        {
+            var _reply = await client.LoginAsync(loginRequest);
+            await AuthState.HandleAuthReply(_reply);
+            NavManager.NavigateTo("/");
+        }
+        catch (Grpc.Core.RpcException ex) when(ex.StatusCode == Grpc.Core.StatusCode.NotFound)
+        {
+            _isInvalidCredentials = true;
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            // something went wrong : log / give the user a message
+            NavManager.NavigateTo("/");
+        }
     }
 }

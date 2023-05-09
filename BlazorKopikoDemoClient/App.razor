@@ -1,4 +1,7 @@
-﻿<Router AppAssembly="@typeof(App).Assembly">
+﻿@using BlazorKopikoDemoClient.Client.State;
+@inject AuthState AuthState;
+
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(AuthLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector=".authHeading" />
@@ -14,3 +17,10 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthState.InitUserAuth();
+    }
+}

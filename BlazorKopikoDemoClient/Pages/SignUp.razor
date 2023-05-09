@@ -2,6 +2,14 @@
 @layout AuthLayout;
 
 @using BlazorKopikoDemoClient.Client.DataModels;
+@using BlazorKopikoDemoClient.Client.State;
+@using BlazorKopikoDemoClient.Protos;
+@using Grpc.Net.Client;
+@inject AuthState AuthState;
+@inject NavigationManager NavManager
+@implements IDisposable;
+@inject GrpcChannel channel;
+
 
 <div>
     <h1 class="text-center fw-bold authHeading">Kopiko</h1>
@@ -9,12 +17,12 @@
     <EditForm class="mt-4 d-flex flex-column align-items-stretch" Model="@_signUpModel" OnValidSubmit="@HandleValidSubmit">
         <div class="mb-3">
             <label for="first_name" class="form-label">First Name</label>
-            <InputText class="form-control" id="first_name" @bind-Value="_signUpModel.FirstName"/>
+            <InputText class="form-control" id="first_name" @bind-Value="_signUpModel.FirstName" />
             <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.FirstName)" />
         </div>
         <div class="mb-3">
             <label for="last_name" class="form-label">Last Name</label>
-            <InputText class="form-control" id="last_name" @bind-Value="_signUpModel.LastName"/>
+            <InputText class="form-control" id="last_name" @bind-Value="_signUpModel.LastName" />
             <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.LastName)" />
         </div>
         <div class="mb-3">
@@ -27,7 +35,13 @@
             <InputText class="form-control" id="password" @bind-Value="_signUpModel.Password" />
             <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _signUpModel.Password)" />
         </div>
-        <button type="submit" class="btn btn-primary ">Sign Up</button>
+
+        @if (_isEmailAlreadyInUse)
+        {
+            <p class="fs-6 text-danger mt-2 mb-2 text-center">User Already Exist!</p>
+        }
+
+        <button type="submit" class="btn btn-primary ">Sign Up</button>       
         <DataAnnotationsValidator />
     </EditForm>
     <div class="mt-4 d-flex flex-column align-items-center">
@@ -40,10 +54,60 @@
 
 @code {
     private SignUpModel _signUpModel = new();
+    private bool _isEmailAlreadyInUse = false;
 
-    private void HandleValidSubmit()
+    protected override async Task OnInitializedAsync()
     {
-        // handle sign up        
+        AuthState.OnChange += StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+        if (AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
     }
 
+    private void HandleAuthStateChanged()
+    {
+        if (AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var client = new Auth.AuthClient(channel);
+
+        var registerRequest = new RegisterRequest
+            {
+                FirstName = _signUpModel.FirstName,
+                LastName = _signUpModel.LastName,
+                Email = _signUpModel.Email,
+                Password = _signUpModel.Password
+
+            };
+
+        try
+        {
+            var _reply = await client.RegisterAsync(registerRequest);
+            await AuthState.HandleAuthReply(_reply);
+            NavManager.NavigateTo("/");
+        }
+        catch (Grpc.Core.RpcException ex) when(ex.StatusCode == Grpc.Core.StatusCode.AlreadyExists)
+        {
+            _isEmailAlreadyInUse = true; 
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            // something went wrong : log / give the user a message
+            NavManager.NavigateTo("/");
+        }
+    }
 }

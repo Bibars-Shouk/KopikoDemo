@@ -25,6 +25,8 @@ namespace BlazorKopikoDemoClient
 
             builder.Services.AddScoped<CartState>();
 
+            builder.Services.AddScoped<AuthState>();
+
             await builder.Build().RunAsync();
         }
     }
