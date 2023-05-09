@@ -1,12 +1,15 @@
 ﻿using Blazored.LocalStorage;
 using BlazorKopikoDemoClient.Client.DataModels;
 using BlazorKopikoDemoClient.Protos;
+using Grpc.Net.Client;
 
 namespace BlazorKopikoDemoClient.Client.State
 {
     public class AuthState
     {
         private readonly ILocalStorageService _localstorage;
+        private readonly GrpcChannel _channel;
+
         public event Action OnChange;
 
         private AuthData _authData = new AuthData
@@ -20,19 +23,26 @@ namespace BlazorKopikoDemoClient.Client.State
 
         public AuthData AuthData { get { return _authData; } set { _authData = value; OnChange?.Invoke(); } }
 
-        public AuthState(ILocalStorageService localstorage)
+        public AuthState(ILocalStorageService localstorage, GrpcChannel channel)
         {
             _localstorage = localstorage;
+            _channel = channel;
         }
 
         public bool CheckRefreshTokenExpiryDate(DateTime refreshTokenExpiryDate)
         {
+            // for a quick test, replace the if statement with this one:
+            //if (refreshTokenExpiryDate.AddDays(-10) < DateTime.UtcNow) return false;
+
             if (refreshTokenExpiryDate.AddMinutes(-5) < DateTime.UtcNow) return false;
             else return true;
         }
 
         public bool CheckAccessTokenExpiryDate(DateTime accessTokenExpiryDate)
         {
+            // for a quick test, replace the if statement with this one:
+            //if (accessTokenExpiryDate.AddMinutes(-100) < DateTime.UtcNow) return false;
+
             if (accessTokenExpiryDate < DateTime.UtcNow) return false;
             else return true;
         }
@@ -49,7 +59,22 @@ namespace BlazorKopikoDemoClient.Client.State
             };
             OnChange?.Invoke();
 
-            await _localstorage.RemoveItemAsync("auth");          
+            await _localstorage.RemoveItemAsync("auth");
+        }
+
+        public async Task RefreshAccessToken()
+        {
+            var client = new Auth.AuthClient(_channel);
+
+            var refreshTokenRequest = new RefreshTokenRequest
+            {
+                AccessToken = AuthData.AccessToken,
+                RefreshToken = AuthData.RefreshToken
+            };
+
+            var _reply = await client.RefreshTokenAsync(refreshTokenRequest);
+
+            await HandleAuthReply(_reply);
         }
 
         public async Task InitUserAuth()
@@ -71,7 +96,8 @@ namespace BlazorKopikoDemoClient.Client.State
                     }
                     else if (!CheckAccessTokenExpiryDate(AuthDateTmp.AccessTokenExpiryDate))
                     {
-                        // refresh access token
+                        AuthData = AuthDateTmp;
+                        await RefreshAccessToken();
                     }
                     else
                     {

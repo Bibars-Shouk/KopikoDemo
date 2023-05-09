@@ -1,0 +1,132 @@
+﻿@page "/account";
+
+@using BlazorKopikoDemoClient.Client.State;
+@using BlazorKopikoDemoClient.Protos;
+@using Google.Protobuf.WellKnownTypes;
+@using Grpc.Net.Client;
+@using Grpc.Core;
+@inject AuthState AuthState;
+@inject NavigationManager NavManager;
+@implements IDisposable;
+@inject GrpcChannel channel;
+
+<h1 class="fs-3">Your Account</h1>
+<div class="container mt-3">
+    <div class="position-relative mt-5" style="height: 1px; background: #ccc;">
+        <span class="position-absolute start-50 bg-white px-3 fs-5" style="transform: translate(-50%,-50%); color:#ccc;">Account Info</span>
+    </div>
+    <div class="mt-5 px-4 position-relative" style="min-height: 100px;">
+        @if (_userReply == null)
+        {
+            <span class="spinner-border text-primary position-absolute top-50 start-50" role="status"></span>
+        }
+        else
+        {
+            <p class="fs-3">Hello, @_userReply.FirstName @_userReply.LastName</p>
+            <p class="">@_userReply.Email</p>
+        }
+    </div>
+    <div class="position-relative mt-5" style="height: 1px; background: #ccc;">
+        <span class="position-absolute start-50 bg-white px-3 fs-5" style="transform: translate(-50%,-50%); color:#ccc;">Your Orders</span>
+    </div>
+    <div class="mt-5" style="min-height: 100px;">
+        @if (_ordersReply == null)
+        {
+            <span class="spinner-border text-primary position-absolute top-50 start-50" role="status"></span>
+        }
+        else if (_ordersReply.Orders.Count == 0)
+        {
+            <p class="mt-4 fs-5 text-center">You don't have any orders yet!</p>
+        }
+        else
+        {
+            @foreach (var order in _ordersReply.Orders)
+            {
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <div class="">
+                            <p class="">Order Number: @order.OrderNumber</p>
+                            <p class="">Order Ship Name: @order.OrderShipName</p>
+                            <p class="">Order Ship Address: @order.OrderShipAddress</p>
+                            <p class="">Order Total Cost: $@order.OrderTotalPrice</p>
+                        </div>
+                        <div class="position-relative my-4 bg-primary" style="height: 1px;">
+                            <span class="position-absolute start-50 bg-white px-3 fs-6 text-primary" style="transform: translate(-50%,-50%);">Order Items</span>
+                        </div>
+                        <div class="d-flex flex-column gap-4">
+                            @foreach (var product in order.OrderDetails)
+                            {
+                                <div class="card border-primary">
+                                    <div class="card-body d-flex flex-column gap-2">
+                                        <div class="d-flex align-items-stretch gap-4 flex-sm-nowrap flex-wrap">
+                                            <div class="" style="max-width: 200px;">
+                                                <img src="@product.Product.ProductImageUrl" class="img-fluid" alt="...">
+                                            </div>
+                                            <div class="p-3 d-flex flex-column justify-content-between">
+                                                <div class="">
+                                                    <p class="fs-3 fw-bold text-primary">@product.Product.ProductName</p>
+                                                    <p>@product.Product.ProductDescription</p>
+                                                    <p>Requested Quantity: @product.Quantity </p>
+                                                    <p>Price per piece: $@product.PricePerPiece</p>
+                                                    <p>Total price: $@product.TotalPrice</p>
+                                                </div>                                                
+                                            </div>
+                                        </div>                                        
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private GetLoggedInUserReply _userReply;
+    private GetUserOrdersReply _ordersReply;
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnChange += StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+        if (!AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+        else
+        {
+            if (!AuthState.CheckRefreshTokenExpiryDate(AuthState.AuthData.RefreshTokenExpiryDate))
+            {
+                NavManager.NavigateTo("/");
+
+            }
+            else if (!AuthState.CheckAccessTokenExpiryDate(AuthState.AuthData.AccessTokenExpiryDate))
+            {
+                await AuthState.RefreshAccessToken();
+            }
+
+            var userClient = new UserAction.UserActionClient(channel);
+            var ordersClient = new UserOrder.UserOrderClient(channel);
+            var _metadata = new Metadata();
+            _metadata.Add("authorization", $"bearer {AuthState.AuthData.AccessToken}");
+            _userReply = await userClient.GetLoggedInUserAsync(new Empty(), _metadata);
+            _ordersReply = await ordersClient.GetUserOrdersAsync(new Empty(), _metadata);
+        }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (!AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+        AuthState.OnChange -= HandleAuthStateChanged;
+    }
+}
