@@ -15,7 +15,7 @@ namespace BlazorKopikoDemoClient.Client.State
             set
             {
                 _cartItems = value;
-                OnChange.Invoke();
+                OnChange?.Invoke();
             }
         }
 
@@ -37,7 +37,7 @@ namespace BlazorKopikoDemoClient.Client.State
                 CartItems = await _localstorage.GetItemAsync<List<CartItem>>("cart");
             }
 
-            OnChange.Invoke();
+            OnChange?.Invoke();
         }
 
         private async Task _updateCartOnLocalStorage()
@@ -58,16 +58,23 @@ namespace BlazorKopikoDemoClient.Client.State
             }
 
             await _updateCartOnLocalStorage();
-            OnChange.Invoke();
+            OnChange?.Invoke();
         }
 
-        public async Task RemoveItemFromCart(long itemId) 
+        public async Task RemoveItemFromCart(long itemId)
         {
             CartItem existingItem = CartItems.FirstOrDefault(i => i.ProductId == itemId);
             CartItems.Remove(existingItem);
             await _updateCartOnLocalStorage();
-            OnChange.Invoke();
+            OnChange?.Invoke();
         }
 
+        public async Task ClearCart()
+        {
+            CartItems = new List<CartItem>();
+            await _localstorage.SetItemAsync<List<CartItem>>("cart", CartItems);
+            OnChange?.Invoke();
+        }
     }
+
 }

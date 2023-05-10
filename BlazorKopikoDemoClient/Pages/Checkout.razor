@@ -1,0 +1,105 @@
+﻿@page "/checkout";
+@using BlazorKopikoDemoClient.Client.DataModels;
+@using BlazorKopikoDemoClient.Client.State;
+@using BlazorKopikoDemoClient.Protos;
+@using Google.Protobuf.WellKnownTypes;
+@using Grpc.Net.Client;
+@using Grpc.Core;
+@inject AuthState AuthState;
+@inject CartState CartState;
+@inject NavigationManager NavManager;
+@implements IDisposable;
+@inject GrpcChannel channel;
+
+<div class="content p-4 min-vh-100 d-flex align-items-center justify-content-center">
+    <div>
+        <h1 class="text-center fw-bold authHeading">Checkout</h1>
+        <p class="text-center mt-4" style="max-width: 300px;">Kopiko follows a "Payment On Delivery" policy. Please fill in the information below and your order will be at your door step within 4 days.</p>
+        <EditForm class="mt-4 d-flex flex-column align-items-stretch" Model="@_orderModel" OnValidSubmit="@HandleValidSubmit">
+            <div class="mb-3">
+                <label for="ship_name" class="form-label">Ship Name</label>
+                <InputText class="form-control" id="ship_name" @bind-Value="_orderModel.ShipName" />
+                <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _orderModel.ShipName)" />
+            </div>
+            <div class="mb-3">
+                <label for="ship_address" class="form-label">Ship Address</label>
+                <InputText class="form-control" id="ship_address" @bind-Value="_orderModel.ShipAddress" />
+                <ValidationMessage class="fs-6 text-danger mt-2" For="@(()=> _orderModel.ShipAddress)" />
+            </div>
+            <button type="submit" class="btn btn-primary ">Checkout</button>
+            <DataAnnotationsValidator />
+        </EditForm>
+        <div class="mt-4 d-flex flex-column align-items-center">
+            <NavLink class="nav-link" href="cart">
+                <span class="text-primary">Back To Cart</span>
+            </NavLink>
+        </div>
+    </div>
+</div>
+
+@code {
+    private OrderModel _orderModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AuthState.OnChange += StateHasChanged;
+        AuthState.OnChange += HandleAuthStateChanged;
+        if (!AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/login",false,true);
+        }else if(CartState.CartItems.Count == 0)
+        {
+            NavManager.NavigateTo("/",false,true);           
+        }
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (!AuthState.AuthData.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/", false, true);
+        }
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+        AuthState.OnChange -= HandleAuthStateChanged;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (!AuthState.CheckRefreshTokenExpiryDate(AuthState.AuthData.RefreshTokenExpiryDate))
+        {
+            NavManager.NavigateTo("/", false, true);
+
+        }
+        else if (!AuthState.CheckAccessTokenExpiryDate(AuthState.AuthData.AccessTokenExpiryDate))
+        {
+            await AuthState.RefreshAccessToken();
+        }
+
+        var client = new UserOrder.UserOrderClient(channel);
+        var _metadata = new Metadata();
+        _metadata.Add("authorization", $"bearer {AuthState.AuthData.AccessToken}");
+
+
+        List<OrderDetailsRequest> orderItemsList = new List<OrderDetailsRequest>();
+
+        CartState.CartItems.ForEach(item =>
+        {
+            orderItemsList.Add(new OrderDetailsRequest {PricePerPiece = item.PricePerPiece, ProductId = item.ProductId , Quantity = item.Quantity });
+        });
+
+        var order = new CreateNewOrderRequest
+        {
+            OrderShipName = _orderModel.ShipName,
+            OrderShipAddress = _orderModel.ShipAddress,     
+            OrderDetailsList = { orderItemsList }
+        };
+
+        await client.CreateNewOrderAsync(order, _metadata);
+        await CartState.ClearCart();
+        NavManager.NavigateTo("/account", false, true);       
+    }
+}
